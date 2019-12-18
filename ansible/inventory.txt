@@ -1,0 +1,19 @@
+60160047-mgn ansible_connection=local
+60160047-01 ansible_ssh_host=192.168.147.12
+60160047-02 ansible_ssh_host=192.168.147.80
+60160047-03 ansible_ssh_host=192.168.147.81
+60160047-04 ansible_ssh_host=192.168.147.82
+
+[myserver]
+60160047-[01:04]
+
+[mydns]
+60160047-mgn
+60160047-01
+
+[web]
+60160047-03
+60160047-04
+
+[db]
+60160047-02

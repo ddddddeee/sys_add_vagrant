@@ -1,0 +1,14 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+  - name: Chech name server
+    shell: cat /etc/resolv.conf | grep nameserver
+    register: myoutput
+  - debug: msg="{{ myoutput.stdout }}"
+    
+  - name: Chech hostname
+    shell: hostname
+    register: myhost
+  - debug: msg="{{ myhost.stdout }}"
