@@ -1,0 +1,9 @@
+zone "mydns.forward" {
+    type master;
+    file "/etc/named/zones/mydns.forward"; # zone file path
+};
+
+zone "mydns.reverse" {
+    type master;
+    file "/etc/named/zones/mydns.reverse";  # 192.168.100.0/24 subnet
+};

@@ -1,0 +1,119 @@
+
+- hosts: mydns
+  become: yes
+  become_user: root
+  tasks:
+
+  - name: Config Listen Port IPv4
+    lineinfile:
+      path: /etc/named.conf
+      regexp: 'listen-on port 53'
+      line: '        listen-on port 53 { any; };'
+      backup: yes
+  - name: Config Listen Port IPv6
+    lineinfile:
+      path: /etc/named.conf
+      regexp: 'listen-on-v6 port 53'
+      line: '        listen-on-v6 port 53 { any; };'
+      backup: yes
+  - name: Config allow-query
+    lineinfile:
+      path: /etc/named.conf
+      regexp: 'allow-query'
+      line: '        allow-query     { any; };'
+      backup: yes
+  # - name: Config allow-tranfer
+  #   lineinfile:
+  #     path: /etc/named.conf
+  #     regexp: 'allow-query'
+  #     line: '        allow-query     { any; };'
+  #     backup: yes\
+  - name: Edit nameserver include zone files;
+    lineinfile: 
+      path: /etc/named.conf 
+      line: 'include "/etc/named/named.conf.local";' 
+      backup: yes
+    when: ansible_connection == 'local'  
+
+  - name: Change Permission directory /etc/named
+    file:
+      path: /etc/named
+      state: directory
+      mode: 0755
+    when: ansible_connection == 'local'
+
+  - name: Copy include Zone file to /etc/named 
+    template:
+      src: 'template/named.conf.local.j2'
+      dest: '/etc/named/named.conf.local'
+      owner: root
+      group: root
+      mode: "0755"
+    when: ansible_connection == 'local'
+
+  - name: Create Zones directory in /etc/named
+    file:
+      path: /etc/named/zones
+      state: directory
+      mode: 0755
+    when: ansible_connection == 'local'
+
+  - name: Copy forward and revest zone file to /etc/named/zones
+    template:
+      src: '{{ item.source }}'
+      dest: '{{ item.destination }}'
+      owner: root
+      group: root
+      mode: "0755"
+      force: yes
+    loop:
+    - { source: 'template/mydns.forward.j2', destination: '/etc/named/zones/mydns.forward' }
+    - { source: 'template/mydns.reverse.j2', destination: '/etc/named/zones/mydns.reverse' }
+    when: ansible_connection == 'local'
+  - name: Start Named Service
+    service: 
+      name: named 
+      state: started
+    when: ansible_connection == 'local'
+
+  - name: Start firewalld Service
+    service: 
+      name: firewalld 
+      state: started
+    when: ansible_connection == 'local'
+
+  - name: Open firewall 53 tcp and 53 udp
+    firewalld: 
+      port: '{{ item }}'
+      permanent: yes 
+      state: enabled
+    loop:
+      - "53/udp"
+      - "53/tcp"
+    when: ansible_connection == 'local'
+
+  - name: Restart firewalld service
+    service: 
+      name: firewalld 
+      state: restarted
+    when: ansible_connection == 'local'
+
+  
+  - name: Copy resolv.conf to all server
+    template:
+      src: 'template/resolv.conf.j2'
+      dest: '/etc/resolv.conf'
+      owner: root
+      group: root
+      mode: "0644"
+      force: yes
+  
+  - name : Check Result "nslookup 60160047-mgn.sysadmin-047.com"
+    command: nslookup 60160047-mgn.sysadmin-047.com
+    register: myoutput
+  - debug: msg="{{ myoutput.stdout }}"
+
+  - name : Check Result "nslookup 60160047-01.sysadmin-047.com"
+    command: nslookup 60160047-01.sysadmin-047.com
+    register: myoutput
+  - debug: msg="{{ myoutput.stdout }}"

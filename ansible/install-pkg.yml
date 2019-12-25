@@ -1,0 +1,14 @@
+---
+- hosts: mydns
+  become: yes
+  become_user: root
+  tasks:
+  - name: install Bind
+    yum:
+      name: bind
+      state: latest
+
+  - name: install Bindutil
+    yum:
+      name: bind-utils
+      state: latest

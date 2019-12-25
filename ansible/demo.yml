@@ -3,12 +3,24 @@
   become: yes
   become_user: root
   tasks:
-  - name: Chech name server
-    shell: cat /etc/resolv.conf | grep nameserver
-    register: myoutput
-  - debug: msg="{{ myoutput.stdout }}"
+  - name: install Bind
+    yum:
+      name: bind
+      state: latest
+
+  - name: install Bindutil
+    yum:
+      name: bind-utils
+      state: latest
+
+
     
-  - name: Chech hostname
-    shell: hostname
-    register: myhost
-  - debug: msg="{{ myhost.stdout }}"
+  # - name: Check name server
+  #   shell: cat /etc/resolv.conf | grep nameserver
+  #   register: myoutput
+  # - debug: msg="{{ myoutput.stdout }}"
+
+  # - name: Check hostname
+  #   shell: hostname
+  #   register: myhost
+  # - debug: msg="{{ myhost.stdout }}"
