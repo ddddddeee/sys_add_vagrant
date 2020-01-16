@@ -1,0 +1,11 @@
+zone "sysadmin-047.com" {
+    type slave;
+    file "slave/sysadmin-047.forward"; # zone file path
+    masters { 192.168.147.11; };
+};
+
+zone "147.168.192.in-addr.arpa" {
+    type slave;
+    file "slave/sysadmin-047.reverse"; # zone file path
+    masters { 192.168.147.11; };
+};

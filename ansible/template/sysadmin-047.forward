@@ -1,0 +1,21 @@
+$TTL 3H
+@	IN SOA	dns1.sysadmin-047.com. root.sysadmin-047.com. (
+					2020011601	; serial
+					3600	; refresh
+					1800	; retry
+					1W	; expire
+					3H )	; minimum
+	IN	NS	dns1.sysadmin-047.com.
+	IN	NS	dns2.sysadmin-047.com.
+
+	IN	A	192.168.147.11
+	IN	MX	10	dns1.sysadmin-047.com.
+
+dns1	IN	A	192.168.147.11
+dns2	IN	A	192.168.147.12
+mail	IN	A	192.168.147.11
+60160047-mgn	IN	A	192.168.147.11
+60160047-01	IN	A	192.168.147.12
+60160047-02	IN	A	192.168.147.80
+60160047-03	IN	A	192.168.147.81
+60160047-04	IN	A	192.168.147.82

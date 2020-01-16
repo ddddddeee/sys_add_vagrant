@@ -1,9 +1,9 @@
-zone "60160047-sysadd.com" {
+zone "sysadmin-047.com" {
     type master;
-    file "/etc/named/zones/60160047-sysadd.forward"; # zone file path
+    file "/etc/named/zones/sysadmin-047.forward"; # zone file path
 };
 
 zone "147.168.192.in-addr.arpa" {
     type master;
-    file "/etc/named/zones/60160047-sysadd.reverse";  # 192.168.147.0/24 subnet
+    file "/etc/named/zones/sysadmin-047.reverse";  # 192.168.147.0/24 subnet
 };

@@ -26,19 +26,22 @@
         line: "        listen-on-v6 port 53 { any; };"
         backup: yes
 
-    - name: Config allow-query
+    - name: Config allow-query && transfer Master
       lineinfile:
         path: /etc/named.conf
         regexp: "allow-query"
-        line: "        allow-query     { any; };
-        allow-transfer  {192.168.147.11; };"
-        backup: yes
-    # - name: Config allow-tranfer
-    #   lineinfile:
-    #     path: /etc/named.conf
-    #     regexp: 'allow-query'
-    #     line: '        allow-query     { any; };'
-    #     backup: yes\
+        line: "        allow-query { any; }; allow-transfer  { 192.168.147.12; };"
+        backup: yes        
+      when: inventory_hostname == "60160047-mgn"
+
+    - name: Disable recursion on Master
+      lineinfile:
+        path: /etc/named.conf
+        regexp: "recursion"
+        line: "        recursion no;"
+        backup: yes        
+      when: inventory_hostname == "60160047-mgn"
+
     - name: Edit nameserver include zone files;
       lineinfile:
         path: /etc/named.conf
@@ -79,12 +82,12 @@
         force: yes
       loop:
         - {
-            source: "template/60160047-sysadd.forward",
-            destination: "/etc/named/zones/60160047-sysadd.forward",
+            source: "template/sysadmin-047.forward",
+            destination: "/etc/named/zones/sysadmin-047.forward",
           }
         - {
-            source: "template/60160047-sysadd.reverse",
-            destination: "/etc/named/zones/60160047-sysadd.reverse",
+            source: "template/sysadmin-047.reverse",
+            destination: "/etc/named/zones/sysadmin-047.reverse",
           }
       when: ansible_connection == 'local'
       
@@ -98,7 +101,7 @@
       service:
         name: firewalld
         state: started
-      when: ansible_connection == 'local'
+      # when: ansible_connection == 'local'
 
     - name: Open firewall 53 tcp and 53 udp
       firewalld:
@@ -108,13 +111,13 @@
       loop:
         - "53/udp"
         - "53/tcp"
-      when: ansible_connection == 'local'
+      # when: ansible_connection == 'local'
 
     - name: Restart firewalld service
       service:
         name: firewalld
         state: restarted
-      when: ansible_connection == 'local'
+      # when: ansible_connection == 'local'
 
     - name: Copy resolv.conf to all server
       template:
@@ -125,12 +128,89 @@
         mode: "0644"
         force: yes
 
-    - name: Check Result "nslookup arnut.com"
-      command: nslookup 60160047-sysadd.com
+    - name: Check Result "nslookup 60160047-mgn.sysadmin-047.com"
+      command: nslookup 60160047-mgn.sysadmin-047.com
       register: myoutput
     - debug: msg="{{ myoutput.stdout }}"
 
-    - name: Check Result "nslookup arnut.com"
-      command: nslookup 60160047-sysadd.com
+    - name: Check Result "nslookup 60160047-01.sysadmin-047.com"
+      command: nslookup 60160047-01.sysadmin-047.com
       register: myoutput
     - debug: msg="{{ myoutput.stdout }}"
+    
+    - name: Check Result "nslookup 60160047-02.sysadmin-047.com"
+      command: nslookup 60160047-02.sysadmin-047.com
+      register: myoutput
+    - debug: msg="{{ myoutput.stdout }}"
+
+    
+    - name: Check Result "60160047-03.sysadmin-047.com"
+      command: nslookup 60160047-03.sysadmin-047.com
+      register: myoutput
+    - debug: msg="{{ myoutput.stdout }}"
+
+    
+    - name: Check Result "60160047-04.sysadmin-047.com"
+      command: nslookup 60160047-04.sysadmin-047.com
+      register: myoutput
+    - debug: msg="{{ myoutput.stdout }}"
+###########################################Slave###############################
+    - name: Config allow-query && transfer Slave
+      lineinfile:
+        path: /etc/named.conf
+        regexp: "allow-query"
+        line: "        allow-query { any; }; allow-transfer { none; };"
+        backup: yes        
+      when: inventory_hostname == "60160047-01"
+
+    - name: Edit nameserver include zone files;
+      lineinfile:
+        path: /etc/named.conf
+        line: 'include "/etc/named/named.conf.local";'
+        backup: yes
+      when: inventory_hostname == "60160047-01"
+
+    - name: Change Permission directory /etc/named
+      file:
+        path: /etc/named
+        state: directory
+        mode: 0755
+      when: inventory_hostname == "60160047-01"
+
+    - name: Copy include Zone file to /etc/named
+      template:
+        src: "template/named.conf.local.slave"
+        dest: "/etc/named/named.conf.local"
+        owner: root
+        group: named
+        mode: "0755"
+      when: inventory_hostname == "60160047-01"
+
+    - name: Start Named Service
+      service:
+        name: named
+        state: started
+      when: inventory_hostname == "60160047-01"
+      
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+      when: inventory_hostname == "60160047-01"
+
+    - name: Open firewall 53 tcp and 53 udp
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+      loop:
+        - "53/udp"
+        - "53/tcp"
+      when: inventory_hostname == "60160047-01"
+
+    - name: Restart firewalld service
+      service:
+        name: firewalld
+        state: restarted
+      when: inventory_hostname == "60160047-01"
