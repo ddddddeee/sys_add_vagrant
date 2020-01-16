@@ -1,0 +1,12 @@
+$TTL 3H
+@	IN SOA	dns1.60160047-sysadd.com. root.60160047-sysadd.com. (
+					2020011603	; serial
+					3600	; refresh
+					1800	; retry
+					1W	; expire
+					3H )	; minimum
+	IN	NS	dns1.60160047-sysadd.com.
+11	IN	PTR	dns1.60160047-sysadd.com.
+12	IN	PTR	dns2.60160047-sysadd.com.
+11	IN	PTR	mail.60160047-sysadd.com.
+80	IN	PTR 60160047-02.60160047-sysadd.com.
