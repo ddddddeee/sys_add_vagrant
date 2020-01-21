@@ -2,12 +2,12 @@
   become: yes
   become_user: root
   tasks:
-    - name: install Bind
+    - name: Install Bind
       yum:
         name: bind
         state: latest
 
-    - name: install Bind-util
+    - name: Install Bind-Utils
       yum:
         name: bind-utils
         state: latest
