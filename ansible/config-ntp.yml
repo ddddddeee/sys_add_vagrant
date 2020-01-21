@@ -1,0 +1,83 @@
+- hosts: mydns
+  become: yes
+  become_user: root
+  tasks:
+
+    - name: Set Time Zone
+      command: timedatectl set-timezone Asia/Bangkok
+      register: tzone
+
+    - name: Install Chrony
+      yum:
+        name: chrony
+        state: latest
+
+    - name: Start Chronyd Service
+      service:
+        name: chronyd
+        state: started
+
+    - name: Enable Chrony Service
+      service:
+        name: chronyd
+        enabled: yes
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+
+    - firewalld:
+        service: ntp
+        permanent: yes
+        state: enabled
+
+    - name: Add TH NTP Server
+      blockinfile:
+        path: /etc/chrony.conf
+        insertafter: "^pool 2.centos.pool.ntp.org iburst"
+        block: |
+          server 0.th.pool.ntp.org
+          server 1.th.pool.ntp.org
+          server 2.th.pool.ntp.org
+          server 3.th.pool.ntp.org
+      when: ansible_connection == 'local'
+
+    - name: Comment Out Old NTP server.
+      replace:
+        path: /etc/chrony.conf
+        regexp: "^pool"
+        replace: "#pool"
+
+    - name: Allow NTP client access from local network.
+      lineinfile:
+        path: /etc/chrony.conf
+        regexp: "#allow 192.168.0.0/16"
+        line: "allow 192.168.0.0/16"
+        backup: yes
+      when: ansible_connection == 'local'
+
+    - name: Enable Chrony Service
+      service:
+        name: chronyd
+        state: restarted
+#############################################################################################
+
+    - name: Allow NTP client access from local network.
+      lineinfile:
+        path: /etc/chrony.conf
+        regexp: "#pool 2.centos.pool.ntp.org iburst"
+        line: "server 192.168.147.11"
+        backup: yes
+      when: inventory_hostname != "60160047-mgn"
+
+    - name: Set NTP synchronization.
+      command: timedatectl set-ntp true
+      register: sntp
+      when: inventory_hostname != "60160047-mgn"
+
+    - name: Enable Chrony Service
+      service:
+        name: chronyd
+        state: restarted
+      when: inventory_hostname != "60160047-mgn"
