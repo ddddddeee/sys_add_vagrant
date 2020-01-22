@@ -1,4 +1,4 @@
-- hosts: mydns
+- hosts: all
   become: yes
   become_user: root
   tasks:
@@ -31,13 +31,14 @@
         service: ntp
         permanent: yes
         state: enabled
+      when: ansible_connection == 'local'
 
     - name: Add TH NTP Server
       blockinfile:
         path: /etc/chrony.conf
         insertafter: "^pool 2.centos.pool.ntp.org iburst"
         block: |
-          server 0.th.pool.ntp.org
+          server 1.th.pool.ntp.org
           server 1.th.pool.ntp.org
           server 2.th.pool.ntp.org
           server 3.th.pool.ntp.org
