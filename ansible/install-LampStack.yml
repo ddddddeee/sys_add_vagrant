@@ -1,0 +1,98 @@
+- hosts: web
+  become: yes
+  become_user: root
+  tasks:
+    ################### Install Apache ###################
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: latest
+
+    - name: Install httpd-tools
+      yum:
+        name: httpd-tools
+        state: latest
+
+    - name: Start httpd Service
+      service:
+        name: httpd
+        state: started
+
+    - name: Enable httpd Service
+      service:
+        name: httpd
+        enabled: yes
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+
+    - name: Add Service http to public zone firewalld
+      firewalld:
+        service: http
+        zone: public
+        permanent: yes
+        state: enabled
+
+    - name: Add Service https to public zone firewalld
+      firewalld:
+        service: https
+        zone: public
+        permanent: yes
+        state: enabled
+
+    - name: Restarte firewalld Service
+      service:
+        name: firewalld
+        state: restarted
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: apache
+        group: apache
+################### Install MariaDB ###################
+
+    - name: Install mariadb-server mariadb
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - mariadb-server
+        - mariadb
+
+    - name: Start mariadb Service
+      service:
+        name: mariadb
+        state: started
+
+    - name: Enable mariadb Service
+      service:
+        name: mariadb
+        enabled: yes
+
+################### Install PHP ###################
+
+    - name: Install php php-fpm php-mysqlnd php-opcache php-gd php-xml php-mbstring
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - php
+        - php-fpm
+        - php-mysqlnd
+        - php-opcache
+        - php-gd
+        - php-xml
+        - php-mbstring
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+
