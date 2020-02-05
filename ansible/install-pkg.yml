@@ -1,14 +1,17 @@
 ---
-- hosts: mydns
+- hosts: all
   become: yes
   become_user: root
   tasks:
-  - name: install Bind
-    yum:
-      name: bind
-      state: latest
+  
+    - name: Start mysqld Service
+      service:
+        name: mysqld
+        state: started
+      when: inventory_hostname == "60160047-04"
 
-  - name: install Bindutil
-    yum:
-      name: bind-utils
-      state: latest
+    - name: Enable mysqld Service
+      service:
+        name: mysqld
+        enabled: yes
+      when: inventory_hostname == "60160047-04"
