@@ -1,17 +1,15 @@
----
 - hosts: all
   become: yes
   become_user: root
   tasks:
-  
-    - name: Start mysqld Service
-      service:
-        name: mysqld
-        state: started
-      when: inventory_hostname == "60160047-04"
-
-    - name: Enable mysqld Service
-      service:
-        name: mysqld
-        enabled: yes
-      when: inventory_hostname == "60160047-04"
+    - name: Start mariadb Service
+      yum:
+        name: httpd
+        state: removed
+    # - name: Allow NTP client access from local network.
+    #   lineinfile:
+    #     path: /etc/rsyslog.conf
+    #     regexp: '#module(load="imudp")'
+    #     line: 'module(load="imudp")'
+    #     backup: yes
+    #   when: ansible_connection == 'local'

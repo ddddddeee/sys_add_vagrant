@@ -1,0 +1,187 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+
+    - name: Install rsyslog
+      yum:
+        name: rsyslog
+        state: latest
+
+    - name: Start rsyslog Service
+      service:
+        name: rsyslog
+        state: started
+
+    - name: Enable rsyslog Service
+      service:
+        name: rsyslog
+        enabled: yes
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+
+    - name: Open firewall 514tcp and 514udp
+      firewalld:
+        port: "{{ item }}"
+        zone: public
+        permanent: yes
+        state: enabled
+      loop:
+        - "514/udp"
+        - "514/tcp"
+      when: ansible_connection == 'local'
+
+    - name: Uncomment in rsyslog.conf
+      blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          module(load="imudp")
+          input(type="imudp" port="514")
+          module(load="imtcp")
+          input(type="imtcp" port="514")
+
+    - name: Start rsyslog Service
+      service:
+        name: rsyslog
+        state: restarted
+
+
+    
+    ################### Install Nginx ###################
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: latest
+      when: "'nginx' in group_names"
+
+    - name: Start Nginx Service
+      service:
+        name: nginx
+        state: started
+      when: "'nginx' in group_names"
+
+    - name: Enable Nginx Service
+      service:
+        name: nginx
+        enabled: yes
+      when: "'nginx' in group_names"
+    ################### Install Apache ###################
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Install httpd-tools
+      yum:
+        name: httpd-tools
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Start httpd Service
+      service:
+        name: httpd
+        state: started
+      when: "'apache' in group_names"
+
+    - name: Enable httpd Service
+      service:
+        name: httpd
+        enabled: yes
+      when: "'apache' in group_names"
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+      when: "'apache' in group_names"
+
+    - name: Add Service http to public zone firewalld
+      firewalld:
+        service: http
+        zone: public
+        permanent: yes
+        state: enabled      
+      when: "'web' in group_names"
+
+    - name: Add Service https to public zone firewalld
+      firewalld:
+        service: https
+        zone: public
+        permanent: yes
+        state: enabled
+      when: "'web' in group_names"
+
+    - name: Restarte firewalld Service
+      service:
+        name: firewalld
+        state: restarted
+      when: "'web' in group_names"
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: apache
+        group: apache
+      when: "'apache' in group_names"
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: nginx
+        group: nginx
+      when: "'nginx' in group_names"
+    ################### Install MariaDB ###################
+
+      ################### Install PHP ###################
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - php
+        - php-fpm
+        - php-mysqli
+      when: inventory_hostname == "60160047-02"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-02"
+
+    - name: Add repositories 
+      yum:
+        name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+        state: latest
+      when: inventory_hostname == "60160047-03"
+
+    - command: dnf module enable php:remi-7.3 -y
+      when: inventory_hostname == "60160047-03"
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - php
+        - php-fpm
+        - php-mysqli
+      when: inventory_hostname == "60160047-03"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-03"
+    

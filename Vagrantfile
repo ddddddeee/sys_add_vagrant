@@ -4,6 +4,7 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "aekapop/ansible-vm"
   config.vm.box_url = "http://10.5.1.18/88733059/package.box"
+  # config.vm.box_url = "http://10.80.5.61/88733059/package.box"
 
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 512

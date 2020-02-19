@@ -2,7 +2,6 @@
   become: yes
   become_user: root
   tasks:
-
     - name: Install rsyslog
       yum:
         name: rsyslog
@@ -23,7 +22,7 @@
         name: firewalld
         state: started
 
-    - name: Open firewall 53 tcp and 53 udp
+    - name: Open firewall 514tcp and 514udp
       firewalld:
         port: "{{ item }}"
         zone: public
@@ -32,12 +31,27 @@
       loop:
         - "514/udp"
         - "514/tcp"
-        # when: ansible_connection == 'local'
+      when: ansible_connection == 'local'
 
-    # - name: Allow NTP client access from local network.
-    #   lineinfile:
-    #     path: /etc/chrony.conf
-    #     regexp: "#module(load=\"imudp\")"
-    #     line: "module(load=\"imudp\")"
-    #     backup: yes
-    #   when: ansible_connection == 'local'
+    - name: Allow NTP client access from local network.
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '#module(load="imudp")'
+        line: 'module(load="imudp")'
+        backup: yes
+      when: ansible_connection == 'local'
+
+    - name: Install rsyslog
+      yum:
+        name: rsyslog
+        state: latest
+
+    - name: Start rsyslog Service
+      service:
+        name: rsyslog
+        state: started
+
+    - name: Enable rsyslog Service
+      service:
+        name: rsyslog
+        enabled: yes
