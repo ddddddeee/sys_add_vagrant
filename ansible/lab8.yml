@@ -2,7 +2,6 @@
   become: yes
   become_user: root
   tasks:
-
     - name: Install rsyslog
       yum:
         name: rsyslog
@@ -48,8 +47,6 @@
         name: rsyslog
         state: restarted
 
-
-    
     ################### Install Nginx ###################
     - name: Install Nginx
       yum:
@@ -104,7 +101,7 @@
         service: http
         zone: public
         permanent: yes
-        state: enabled      
+        state: enabled
       when: "'web' in group_names"
 
     - name: Add Service https to public zone firewalld
@@ -138,7 +135,7 @@
       when: "'nginx' in group_names"
     ################### Install MariaDB ###################
 
-      ################### Install PHP ###################
+    ################### Install PHP ###################
 
     - name: Install php php-fpm php-mysqli
       yum:
@@ -146,9 +143,9 @@
         state: latest
       vars:
         packages:
-        - php
-        - php-fpm
-        - php-mysqli
+          - php
+          - php-fpm
+          - php-mysqli
       when: inventory_hostname == "60160047-02"
 
     - name: Start and Enable php-fpm Service
@@ -158,14 +155,21 @@
         enabled: yes
       when: inventory_hostname == "60160047-02"
 
-    - name: Add repositories 
+    - name: Add repositories
       yum:
         name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
         state: latest
       when: inventory_hostname == "60160047-03"
 
-    - command: dnf module enable php:remi-7.3 -y
+    - name: enable repo php:remi
+      command: dnf module enable php:remi-7.3 -y
       when: inventory_hostname == "60160047-03"
+
+    # - name: enable repo php:remi
+    #   yum:
+    #     name: php
+    #     enablerepo: "remi-7.3"
+    #   when: inventory_hostname == "60160047-03"
 
     - name: Install php php-fpm php-mysqli
       yum:
@@ -173,9 +177,9 @@
         state: latest
       vars:
         packages:
-        - php
-        - php-fpm
-        - php-mysqli
+          - php
+          - php-fpm
+          - php-mysqli
       when: inventory_hostname == "60160047-03"
 
     - name: Start and Enable php-fpm Service
@@ -184,4 +188,12 @@
         state: started
         enabled: yes
       when: inventory_hostname == "60160047-03"
-    
+
+    - name: Copy phpinfo.php to /var/www/html/index.php
+      template:
+        src: "./template/phpinfo.php"
+        dest: "/var/www/html/index.php"
+        owner: apache
+        group: apache
+        mode: "0755"
+      when: "'apache' in group_names"

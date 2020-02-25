@@ -1,0 +1,92 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: started
+
+    - name: Enable nfs-server Service
+      service:
+        name: nfs-server
+        enabled: yes
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: root
+        group: root
+      when: "'nfsServer' in group_names"
+
+    - name: Copy phpinfo.php to /var/www/html/index.php
+      template:
+        src: "./template/phpinfo.php"
+        dest: "/var/www/html/index.php"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nfsServer' in group_names"
+
+    - name: Create Share Directory
+      command: mkdir -p /srv/nfs4/www
+      when: "'nfsServer' in group_names"
+
+    - name: Mount Directory
+      command: mount --bind /var/www /srv/nfs4/www
+      when: "'nfsServer' in group_names"
+
+    - name: Add directory to fstab
+      blockinfile:
+        path: /etc/fstab
+        block: |
+          /var/www     /srv/nfs4/www      none   bind   0   0
+      when: "'nfsServer' in group_names"
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
+          /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -ra
+      when: "'nfsServer' in group_names"
+
+    - name: Start firewalld Service
+      service:
+        name: firewalld
+        state: started
+      when: "'nfsServer' in group_names"
+
+    - command: firewall-cmd --new-zone=nfs --permanent
+      when: "'nfsServer' in group_names"
+    - command: firewall-cmd --zone=nfs --add-service=nfs --permanent
+      when: "'nfsServer' in group_names"
+    - command: firewall-cmd --zone=nfs --add-source=192.168.147.0/24 --permanent
+      when: "'nfsServer' in group_names"
+
+    - name: Restart firewalld service
+      service:
+        name: firewalld
+        state: restarted
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: restarted
+
+    - command: mkdir -p /srv/www
+      when: "'nfsServer' not in group_names"
+
+    - command: mount -t nfs -o vers=4 192.168.147.12:/www /srv/www
+      when: "'nfsServer' not in group_names"

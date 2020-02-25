@@ -2,10 +2,35 @@
   become: yes
   become_user: root
   tasks:
-    - name: Start mariadb Service
-      yum:
-        name: httpd
-        state: removed
+    - name: Copy phpinfo.php to /var/www/html/index.php
+      template:
+        src: "./template/phpinfo.php"
+        dest: "/var/www/html/index.php"
+        owner: apache
+        group: apache
+        mode: "0755"
+      when: "'apache' in group_names"
+    # - name: add ip to file hosts
+    #   blockinfile:
+    #     path: /etc/hosts
+    #     block: |
+    #       192.168.147.12 www.mysite-047.com          
+    #       192.168.147.80 server-02.mysite-047.com
+    #       192.168.147.81 server-03.mysite-047.com
+    #   when: "'nginx' in group_names"
+
+    # - name: proxy_pass
+    #   blockinfile:
+    #     path: /etc/nginx/nginx.conf
+    #     insertafter: "/<include /etc/nginx/default.d/*.conf;/>"
+    #     block: |
+    #       location /app1/ {
+    #         proxy_pass http://server-02.mysite-047.com;
+    #       }
+    #       location /app2/ {
+    #         proxy_pass http://server-03.mysite-047.com;
+    #       }
+    #   when: "'nginx' in group_names"
     # - name: Allow NTP client access from local network.
     #   lineinfile:
     #     path: /etc/rsyslog.conf
