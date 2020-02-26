@@ -1,0 +1,182 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    ################### Install Nginx ###################
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: latest
+      when: "'nginx' in group_names"
+
+    - name: Start Nginx Service
+      service:
+        name: nginx
+        state: started
+      when: "'nginx' in group_names"
+
+    - name: Enable Nginx Service
+      service:
+        name: nginx
+        enabled: yes
+      when: "'nginx' in group_names"
+    ################### Install Apache ###################
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Install httpd-tools
+      yum:
+        name: httpd-tools
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Start httpd Service
+      service:
+        name: httpd
+        state: started
+      when: "'apache' in group_names"
+
+    - name: Enable httpd Service
+      service:
+        name: httpd
+        enabled: yes
+      when: "'apache' in group_names"
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: nginx
+        group: nginx
+      when: "'nginx' in group_names"
+    ################### Install MariaDB ###################
+
+    ################### Install PHP ###################
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+          - php
+          - php-fpm
+          - php-mysqli
+      when: inventory_hostname == "60160047-02"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-02"
+
+    - name: Add repositories
+      yum:
+        name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+        state: latest
+      when: inventory_hostname == "60160047-03"
+
+    - name: enable repo php:remi
+      command: dnf module enable php:remi-7.3 -y
+      when: inventory_hostname == "60160047-03"
+
+    # - name: enable repo php:remi
+    #   yum:
+    #     name: php
+    #     enablerepo: "remi-7.3"
+    #   when: inventory_hostname == "60160047-03"
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+          - php
+          - php-fpm
+          - php-mysqli
+      when: inventory_hostname == "60160047-03"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-03"
+
+      ######################NFS###############
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: started
+
+    - name: Enable nfs-server Service
+      service:
+        name: nfs-server
+        enabled: yes
+
+    - name: Creates directory /data/wwwdata
+      file:
+        path: /data/wwwdata
+        state: directory
+        mode: 0775
+        recurse: yes
+
+    - name: Creates directory /srv/nfs4/www
+      file:
+        path: /srv/nfs4/www
+        state: directory
+        mode: 0766
+        recurse: yes
+
+    # - name: Mount data to srv
+    #   mount:
+    #     path: /srv/nfs4/www
+    #     src: /data/wwwdata
+    #     opts: bind
+    #     fstype: nfs
+    #     state: present
+    #   when: "'nfsServer' in group_names"
+
+    - name: Mount Directory
+      command: mount --bind /data/wwwdata /srv/nfs4/www
+      when: "'nfsServer' in group_names"
+
+    - name: Add directory to fstab
+      blockinfile:
+        path: /etc/fstab
+        block: |
+          /data/wwwdata     /srv/nfs4/www      none   bind   0   0
+      when: "'nfsServer' in group_names"
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
+          /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -ra
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: restarted
+
+    - command: mkdir -p /var/www
+      when: "'apache' in group_names"
+
+    - command: mount -t nfs -o vers=4 192.168.147.82:/www /var/www
+      when: "'apache' in group_names"

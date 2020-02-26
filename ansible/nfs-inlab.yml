@@ -1,0 +1,55 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: started
+
+    - name: Enable nfs-server Service
+      service:
+        name: nfs-server
+        enabled: yes
+
+
+    - name: Create Share Directory
+      command: mkdir -p /srv/nfs4/www
+      when: "'nfsServer' in group_names"
+
+    - name: Mount Directory
+      command: mount --bind /data/wwwdata /srv/nfs4/www
+      when: "'nfsServer' in group_names"
+
+    - name: Add directory to fstab
+      blockinfile:
+        path: /etc/fstab
+        block: |
+        /data/wwwdata     /srv/nfs4/www      none   bind   0   0
+      when: "'nfsServer' in group_names"
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
+          /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -ra
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: restarted
+      when: "'nfsServer' in group_names"
+
+    - command: mount -t nfs -o vers=4 192.168.147.82:/var/www /srv/www
+      when: "'nfsServer' not in group_names"

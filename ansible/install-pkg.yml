@@ -2,23 +2,21 @@
   become: yes
   become_user: root
   tasks:
-    - name: Copy phpinfo.php to /var/www/html/index.php
-      template:
-        src: "./template/phpinfo.php"
-        dest: "/var/www/html/index.php"
-        owner: apache
-        group: apache
-        mode: "0755"
-      when: "'apache' in group_names"
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
+          /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
+      when: "'nfsServer' in group_names"
     # - name: add ip to file hosts
     #   blockinfile:
     #     path: /etc/hosts
     #     block: |
-    #       192.168.147.12 www.mysite-047.com          
+    #       192.168.147.12 www.mysite-047.com
     #       192.168.147.80 server-02.mysite-047.com
     #       192.168.147.81 server-03.mysite-047.com
     #   when: "'nginx' in group_names"
-
     # - name: proxy_pass
     #   blockinfile:
     #     path: /etc/nginx/nginx.conf
