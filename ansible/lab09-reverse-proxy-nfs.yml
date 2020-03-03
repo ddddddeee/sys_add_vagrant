@@ -2,6 +2,7 @@
   become: yes
   become_user: root
   tasks:
+    ################### Install rsyslog ###################
     - name: Install rsyslog
       yum:
         name: rsyslog
@@ -12,12 +13,6 @@
         name: rsyslog
         state: started
         enabled: yes
-
-    - name: Start firewalld Service
-      service:
-        name: firewalld
-        state: started
-
     ################### Install Nginx ###################
     - name: Install Nginx
       yum:
@@ -29,11 +24,6 @@
       service:
         name: nginx
         state: started
-      when: "'nginx' in group_names"
-
-    - name: Enable Nginx Service
-      service:
-        name: nginx
         enabled: yes
       when: "'nginx' in group_names"
     ################### Install Apache ###################
@@ -53,48 +43,7 @@
       service:
         name: httpd
         state: started
-      when: "'apache' in group_names"
-
-    - name: Enable httpd Service
-      service:
-        name: httpd
         enabled: yes
-      when: "'apache' in group_names"
-
-    - name: Start firewalld Service
-      service:
-        name: firewalld
-        state: started
-      when: "'apache' in group_names"
-
-    - name: Add Service http to public zone firewalld
-      firewalld:
-        service: http
-        zone: public
-        permanent: yes
-        state: enabled
-      when: "'web' in group_names"
-
-    - name: Add Service https to public zone firewalld
-      firewalld:
-        service: https
-        zone: public
-        permanent: yes
-        state: enabled
-      when: "'web' in group_names"
-
-    - name: Restarte firewalld Service
-      service:
-        name: firewalld
-        state: restarted
-      when: "'web' in group_names"
-
-    - name: Give insecure permissions to an existing file
-      file:
-        path: /var/www/html
-        recurse: yes
-        owner: apache
-        group: apache
       when: "'apache' in group_names"
 
     - name: Give insecure permissions to an existing file
@@ -104,7 +53,6 @@
         owner: nginx
         group: nginx
       when: "'nginx' in group_names"
-    ################### Install MariaDB ###################
 
     ################### Install PHP ###################
 
@@ -136,12 +84,6 @@
       command: dnf module enable php:remi-7.3 -y
       when: inventory_hostname == "60160047-03"
 
-    # - name: enable repo php:remi
-    #   yum:
-    #     name: php
-    #     enablerepo: "remi-7.3"
-    #   when: inventory_hostname == "60160047-03"
-
     - name: Install php php-fpm php-mysqli
       yum:
         name: "{{ packages }}"
@@ -160,31 +102,69 @@
         enabled: yes
       when: inventory_hostname == "60160047-03"
 
-    - name: Copy phpinfo.php to /var/www/html/index.php
-      template:
-        src: "./template/phpinfo.php"
-        dest: "/var/www/html/index.php"
-        owner: apache
-        group: apache
-        mode: "0755"
-      when: "'apache' in group_names"
+      ################### NFS ###################
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
 
-    ###########Config syslog###########
-    - name: Open firewall 514tcp and 514udp
-      firewalld:
-        port: "{{ item }}"
-        zone: public
-        permanent: yes
-        state: enabled
-      loop:
-        - "514/udp"
-        - "514/tcp"
-
-    - name: Restarte firewalld Service
+    - name: Start nfs-server Service
       service:
-        name: firewalld
+        name: nfs-server
+        state: started
+        enabled: yes
+
+    - name: Start rpcbind Service
+      service:
+        name: rpcbind
+        state: started
+        enabled: yes
+
+    - name: Creates directory /data/wwwdata
+      file:
+        path: /data/wwwdata
+        state: directory
+        mode: 0777
+        recurse: yes
+
+    # - name: Creates directory /srv/nfs4/wwwdata
+    #   file:
+    #     path: /srv/nfs4/wwwdata
+    #     state: directory
+    #     mode: 0755
+    #     recurse: yes
+
+    # - name: Mount Directory
+    #   command: mount --bind /data/wwwdata /srv/nfs4/wwwdata
+    #   when: "'nfsServer' in group_names"
+
+    # - name: Add directory to fstab
+    #   blockinfile:
+    #     path: /etc/fstab
+    #     block: |
+    #       /data/wwwdata     /srv/nfs4/wwwdata      none   bind   0   0
+    #   when: "'nfsServer' in group_names"
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /data/wwwdata     192.168.147.0/24(rw,no_root_squash)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -rav
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
         state: restarted
 
+    - command: mount -t nfs -o vers=4 192.168.147.82:/data/wwwdata /var/www/html
+      when: "'apache' in group_names"
+
+      ################### Config syslog ###################
     - name: Uncomment in rsyslog.conf
       blockinfile:
         path: /etc/rsyslog.conf
@@ -223,3 +203,38 @@
       service:
         name: rsyslog
         state: restarted
+
+    ################### Config Nginx ###################
+    - name: Copy reverse file to /etc/ngix/conf.d
+      template:
+        src: "template/mysite-047.com.conf"
+        dest: "/etc/nginx/conf.d/mysite-047.com.conf"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nginx' in group_names"
+
+    - name: Add client in hosts file
+      blockinfile:
+        path: /etc/hosts
+        block: |
+          192.168.147.12 www.mysite-047.com
+          192.168.147.80 server-02.mysite-047.com
+          192.168.147.81 server-03.mysite-047.com
+        backup: yes
+      when: "'nginx' in group_names"
+
+    - name: Restarte nginx Service
+      service:
+        name: nginx
+        state: restarted
+      when: "'nginx' in group_names"
+
+    - name: Copy reverse file to /etc/ngix/conf.d
+      template:
+        src: "template/phpinfo.php"
+        dest: "/data/wwwdata/index.php"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nfsServer' in group_names"

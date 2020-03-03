@@ -1,0 +1,59 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: started
+        enabled: yes
+
+    - name: Start rpcbind Service
+      service:
+        name: rpcbind
+        state: started
+        enabled: yes
+
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Start httpd Service
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: "'apache' in group_names"
+
+    - name: Creates directory /data/wwwdata
+      file:
+        path: /data/wwwdata
+        state: directory
+        mode: 0777
+        recurse: yes
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /data/wwwdata     192.168.147.0/24(rw,no_root_squash)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -rav
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: restarted
+
+    - command: mount -t nfs -o vers=4 192.168.147.82:/data/wwwdata /var/www/html
+      when: "'apache' in group_names"

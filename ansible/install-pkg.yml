@@ -2,13 +2,37 @@
   become: yes
   become_user: root
   tasks:
-    - name: Export directory and allow access
+    - name: Copy reverse file to /etc/ngonx/conf.d
+      template:
+        src: "template/mysite-047.com.conf"
+        dest: "/etc/nginx/conf.d/mysite-047.com.conf"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nginx' in group_names"
+
+    - name: Add client in hosts file
       blockinfile:
-        path: /etc/exports
+        path: /etc/hosts
         block: |
-          /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
-          /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
-      when: "'nfsServer' in group_names"
+          192.168.147.12 www.mysite-047.com
+          192.168.147.80 server-02.mysite-047.com
+          192.168.147.81 server-03.mysite-047.com
+        backup: yes
+      when: "'nginx' in group_names"
+
+    - name: Restarte nginx Service
+      service:
+        name: nginx
+        state: restarted
+      when: "'nginx' in group_names"
+    # - name: Export directory and allow access
+    #   blockinfile:
+    #     path: /etc/exports
+    #     block: |
+    #       /srv/nfs4         192.168.147.0/24(rw,sync,no_subtree_check,crossmnt,fsid=0)
+    #       /srv/nfs4/www     192.168.147.0/24(rw,sync,no_subtree_check)
+    #   when: "'nfsServer' in group_names"
     # - name: add ip to file hosts
     #   blockinfile:
     #     path: /etc/hosts

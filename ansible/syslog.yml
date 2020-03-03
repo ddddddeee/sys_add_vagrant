@@ -1,0 +1,98 @@
+---
+  - hosts: all
+    become: yes
+    become_user: root
+  
+    tasks:
+    - name: Install rsyslog
+      dnf:
+        name: rsyslog
+
+    - name: Start rsyslog
+      command: systemctl start rsyslog.service
+
+    - name: Install httpd
+      dnf:
+        name: httpd
+
+    - name: Start httpd
+      service: 
+        name: httpd
+        state: started
+
+    - name: Enable httpd
+      service: 
+        name: httpd
+        enabled: yes
+
+    - name: Add in httpd
+      blockinfile: 
+        path: /etc/httpd/conf/httpd.conf
+        block: |
+          CustomLog "| /bin/sh -c '/usr/bin/tee -a /var/log/httpd/httpd-access.log | /usr/bin/logger -thttpd -plocal6.info'" combined
+        backup: yes   
+      # when: ansible_connection == 'local'
+
+    - name: Restart httpd
+      service: 
+        name: httpd
+        state: restarted
+      
+    - name: Restart rsyslog
+      command: systemctl restart rsyslog.service 
+
+    - name: Add lastline and Provides udp&tcp syslog
+      blockinfile: 
+        path: /etc/rsyslog.conf
+        block: |
+          module(load="imudp") 
+          input(type="imudp" port="514") 
+          module(load="imtcp") 
+          input(type="imtcp" port="514") 
+
+      when: ansible_connection == 'local'
+          # action(type="omfwd" Target="192.168.151.11" Port="514" Protocol="udp")
+          # action(type="omfwd" Target="192.168.151.11" Port="514" Protocol="tcp")
+
+    - name: Add lastline and Provides udp&tcp syslog
+      blockinfile: 
+        path: /etc/rsyslog.conf
+        block: |
+          action(type="omfwd" Target="192.168.151.11" Port="514" Protocol="udp")
+          action(type="omfwd" Target="192.168.151.11" Port="514" Protocol="tcp")
+      when: ansible_connection != 'local'
+
+    - name: Restart rsyslog
+      command: systemctl restart rsyslog.service 
+    
+    - name: Start firewalld
+      shell:
+        cmd: systemctl start firewalld
+
+    - name: Reload firewalld
+      shell:
+        cmd: systemctl restart firewalld
+
+    - name: Get zone firewall
+      shell:
+        cmd: firewall-cmd --get-zones
+
+    - name: TCP firewall
+      shell:
+        cmd: firewall-cmd --zone=public --permanent --add-port 514/tcp
+    
+    - name: UDP firewall
+      shell:
+        cmd: firewall-cmd --zone=public --permanent --add-port 514/udp
+
+    - name: http firewall
+      shell:
+        cmd: firewall-cmd --zone=public --permanent --add-service=http
+
+    - name: https firewall
+      shell:
+        cmd: firewall-cmd --zone=public --permanent --add-service=https    
+     
+    - name: Restart firewall
+      shell:
+        cmd: firewall-cmd --reload

@@ -18,25 +18,6 @@
         name: firewalld
         state: started
 
-    ################### Install Nginx ###################
-    - name: Install Nginx
-      yum:
-        name: nginx
-        state: latest
-      when: "'nginx' in group_names"
-
-    - name: Start Nginx Service
-      service:
-        name: nginx
-        state: started
-      when: "'nginx' in group_names"
-
-    - name: Enable Nginx Service
-      service:
-        name: nginx
-        enabled: yes
-      when: "'nginx' in group_names"
-    ################### Install Apache ###################
     - name: Install httpd
       yum:
         name: httpd
@@ -65,7 +46,6 @@
       service:
         name: firewalld
         state: started
-      when: "'apache' in group_names"
 
     - name: Add Service http to public zone firewalld
       firewalld:
@@ -83,93 +63,14 @@
         state: enabled
       when: "'web' in group_names"
 
-    - name: Restarte firewalld Service
+    - name: Restart firewalld Service
       service:
         name: firewalld
         state: restarted
       when: "'web' in group_names"
 
-    - name: Give insecure permissions to an existing file
-      file:
-        path: /var/www/html
-        recurse: yes
-        owner: apache
-        group: apache
-      when: "'apache' in group_names"
-
-    - name: Give insecure permissions to an existing file
-      file:
-        path: /var/www/html
-        recurse: yes
-        owner: nginx
-        group: nginx
-      when: "'nginx' in group_names"
-    ################### Install MariaDB ###################
-
-    ################### Install PHP ###################
-
-    - name: Install php php-fpm php-mysqli
-      yum:
-        name: "{{ packages }}"
-        state: latest
-      vars:
-        packages:
-          - php
-          - php-fpm
-          - php-mysqli
-      when: inventory_hostname == "60160047-02"
-
-    - name: Start and Enable php-fpm Service
-      service:
-        name: php-fpm
-        state: started
-        enabled: yes
-      when: inventory_hostname == "60160047-02"
-
-    - name: Add repositories
-      yum:
-        name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
-        state: latest
-      when: inventory_hostname == "60160047-03"
-
-    - name: enable repo php:remi
-      command: dnf module enable php:remi-7.3 -y
-      when: inventory_hostname == "60160047-03"
-
-    # - name: enable repo php:remi
-    #   yum:
-    #     name: php
-    #     enablerepo: "remi-7.3"
-    #   when: inventory_hostname == "60160047-03"
-
-    - name: Install php php-fpm php-mysqli
-      yum:
-        name: "{{ packages }}"
-        state: latest
-      vars:
-        packages:
-          - php
-          - php-fpm
-          - php-mysqli
-      when: inventory_hostname == "60160047-03"
-
-    - name: Start and Enable php-fpm Service
-      service:
-        name: php-fpm
-        state: started
-        enabled: yes
-      when: inventory_hostname == "60160047-03"
-
-    - name: Copy phpinfo.php to /var/www/html/index.php
-      template:
-        src: "./template/phpinfo.php"
-        dest: "/var/www/html/index.php"
-        owner: apache
-        group: apache
-        mode: "0755"
-      when: "'apache' in group_names"
-
     ###########Config syslog###########
+
     - name: Open firewall 514tcp and 514udp
       firewalld:
         port: "{{ item }}"
@@ -180,7 +81,7 @@
         - "514/udp"
         - "514/tcp"
 
-    - name: Restarte firewalld Service
+    - name: Restart firewalld Service
       service:
         name: firewalld
         state: restarted
