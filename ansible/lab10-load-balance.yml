@@ -1,0 +1,241 @@
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    ################### Install rsyslog ###################
+    - name: Install rsyslog
+      yum:
+        name: rsyslog
+        state: latest
+
+    - name: Start rsyslog Service
+      service:
+        name: rsyslog
+        state: started
+        enabled: yes
+    ################### Install Nginx ###################
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: latest
+      when: "'nginx' in group_names"
+
+    - name: Start Nginx Service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      when: "'nginx' in group_names"
+    ################### Install Apache ###################
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Install httpd-tools
+      yum:
+        name: httpd-tools
+        state: latest
+      when: "'apache' in group_names"
+
+    - name: Start httpd Service
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: "'apache' in group_names"
+
+    - name: Give insecure permissions to an existing file
+      file:
+        path: /var/www/html
+        recurse: yes
+        owner: nginx
+        group: nginx
+      when: "'nginx' in group_names"
+
+    ################### Install PHP ###################
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+          - php
+          - php-fpm
+          - php-mysqli
+      when: inventory_hostname == "60160047-02"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-02"
+
+    - name: Add repositories
+      yum:
+        name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+        state: latest
+      when: inventory_hostname == "60160047-03"
+
+    - name: enable repo php:remi
+      command: dnf module enable php:remi-7.3 -y
+      when: inventory_hostname == "60160047-03"
+
+    - name: Install php php-fpm php-mysqli
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+          - php
+          - php-fpm
+          - php-mysqli
+      when: inventory_hostname == "60160047-03"
+
+    - name: Start and Enable php-fpm Service
+      service:
+        name: php-fpm
+        state: started
+        enabled: yes
+      when: inventory_hostname == "60160047-03"
+
+      ################### NFS ###################
+    - name: Install nfs-utils
+      dnf:
+        name: nfs-utils
+        state: latest
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: started
+        enabled: yes
+
+    - name: Start rpcbind Service
+      service:
+        name: rpcbind
+        state: started
+        enabled: yes
+
+    - name: Creates directory /data/wwwdata
+      file:
+        path: /data/wwwdata
+        state: directory
+        mode: 0777
+        recurse: yes
+
+    # - name: Creates directory /srv/nfs4/wwwdata
+    #   file:
+    #     path: /srv/nfs4/wwwdata
+    #     state: directory
+    #     mode: 0755
+    #     recurse: yes
+
+    # - name: Mount Directory
+    #   command: mount --bind /data/wwwdata /srv/nfs4/wwwdata
+    #   when: "'nfsServer' in group_names"
+
+    # - name: Add directory to fstab
+    #   blockinfile:
+    #     path: /etc/fstab
+    #     block: |
+    #       /data/wwwdata     /srv/nfs4/wwwdata      none   bind   0   0
+    #   when: "'nfsServer' in group_names"
+
+    - name: Export directory and allow access
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /data/wwwdata     192.168.147.0/24(rw,no_root_squash)
+      when: "'nfsServer' in group_names"
+
+    - name: Save the file and export the shares
+      command: exportfs -rav
+      when: "'nfsServer' in group_names"
+
+    - name: Start nfs-server Service
+      service:
+        name: nfs-server
+        state: restarted
+
+    - command: mount -t nfs -o vers=4 192.168.147.82:/data/wwwdata /var/www/html
+      when: "'apache' in group_names"
+
+      ################### Config syslog ###################
+    - name: Uncomment in rsyslog.conf
+      blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          module(load="imudp")
+          input(type="imudp" port="514")
+          module(load="imtcp")
+          input(type="imtcp" port="514")
+        backup: yes
+      when: "'logServer' in group_names"
+
+    - name: Add CustomLog
+      blockinfile:
+        path: /etc/httpd/conf/httpd.conf
+        block: |
+          CustomLog "| /bin/sh -c '/usr/bin/tee -a /var/log/httpd/httpd-access.log | /usr/bin/logger -thttpd -plocal6.info'" combined
+        backup: yes
+      when: "'apache' in group_names"
+
+    - name: Add CustomLog
+      blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          action(type="omfwd" Target="192.168.147.11" Port="514" Protocol="udp")
+          action(type="omfwd" Target="192.168.147.11" Port="514" Protocol="tcp")
+        backup: yes
+      when: "'logServer' not in group_names"
+
+    - name: Restarte httpd Service
+      service:
+        name: httpd
+        state: restarted
+      when: "'apache' in group_names"
+
+    - name: Restart rsyslog Service
+      service:
+        name: rsyslog
+        state: restarted
+
+    ################### Config Nginx ###################
+    - name: Copy reverse file to /etc/ngix/conf.d
+      template:
+        src: "template/nginx-lb.conf"
+        dest: "/etc/nginx/nginx.conf"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nginx' in group_names"
+
+
+    - name: Add client in hosts file
+      blockinfile:
+        path: /etc/hosts
+        block: |
+          192.168.147.12 www.mysite-047.com
+          192.168.147.80 server-02.mysite-047.com
+          192.168.147.81 server-03.mysite-047.com
+        backup: yes
+      when: "'nginx' in group_names"
+
+    - name: Restarte nginx Service
+      service:
+        name: nginx
+        state: restarted
+      when: "'nginx' in group_names"
+
+    - name: Copy reverse file to /etc/ngix/conf.d
+      template:
+        src: "template/phpinfo.php"
+        dest: "/data/wwwdata/index.php"
+        owner: root
+        group: root
+        mode: "0755"
+      when: "'nfsServer' in group_names"

@@ -30,7 +30,7 @@
       blockinfile:
         path: /etc/fstab
         block: |
-        /data/wwwdata     /srv/nfs4/www      none   bind   0   0
+          /data/wwwdata     /srv/nfs4/www      none   bind   0   0
       when: "'nfsServer' in group_names"
 
     - name: Export directory and allow access
