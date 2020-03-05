@@ -4,34 +4,41 @@
   tasks:
     ################### Install Apache ###################
 
-    - name: Install mysql-server mariadb
-      yum:
-        name: "{{ packages }}"
-        state: latest
-      vars:
-        packages:
-          - mysql-server
-          - mariadb-connector-c-config
-          - mecab
-          - mysql
-          - mysql-common
-          - mysql-errmsg
-          - protobuf-lite
-      when: "'dbServer' in group_names"
-
-    # - name: Install mariadb-server mariadb
+    # - name: Install mysql-server mariadb
     #   yum:
     #     name: "{{ packages }}"
     #     state: latest
     #   vars:
     #     packages:
-    #       - mariadb-server
-    #       - mariadb
+    #       - mysql-server
+    #       - mariadb-connector-c-config
+    #       - mecab
+    #       - mysql
+    #       - mysql-common
+    #       - mysql-errmsg
+    #       - protobuf-lite
+    #   when: "'dbServer' in group_names"
+
+    - name: Install mariadb-server mariadb
+      yum:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+          - mariadb-server
+          - mariadb
+      when: "'dbServer' in group_names"
+
+    # - name: Start mysql Service
+    #   service:
+    #     name: mysqld
+    #     state: started
+    #     enabled: yes
     #   when: "'dbServer' in group_names"
 
     - name: Start mysql Service
       service:
-        name: mysqld
+        name: mariadb
         state: started
         enabled: yes
       when: "'dbServer' in group_names"
