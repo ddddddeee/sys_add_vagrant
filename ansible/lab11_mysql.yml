@@ -3,44 +3,58 @@
   become_user: root
   tasks:
     ################### Install Apache ###################
-    - name: Install python3
-      yum:
-        name: python3
-        state: latest 
-      when: "'dbServer' in group_names"
 
-    - name: Install mariadb-server mariadb
+    - name: Install mysql-server mariadb
       yum:
         name: "{{ packages }}"
         state: latest
       vars:
         packages:
-          - mariadb-server
-          - mariadb
+          - mysql-server
+          - mariadb-connector-c-config
+          - mecab
+          - mysql
+          - mysql-common
+          - mysql-errmsg
+          - protobuf-lite
       when: "'dbServer' in group_names"
 
-    - name: Start mariadb Service
+    # - name: Install mariadb-server mariadb
+    #   yum:
+    #     name: "{{ packages }}"
+    #     state: latest
+    #   vars:
+    #     packages:
+    #       - mariadb-server
+    #       - mariadb
+    #   when: "'dbServer' in group_names"
+
+    - name: Start mysql Service
       service:
-        name: mariadb
+        name: mysqld
         state: started
         enabled: yes
       when: "'dbServer' in group_names"
 
-    - name: Save the file and export the shares
-      command: pip3 install MySQL-python
+    - name: python -m pip install PyMySQL
+      command: python -m pip install --upgrade pip
       when: "'dbServer' in group_names"
-      
-    - name: Make sure pymysql is present
-      pip:
-        name: pymysql
+
+    - name: python -m pip install PyMySQL
+      command: python -m pip install PyMySQL
+      when: "'dbServer' in group_names"
+
+    - name: Create a new database with name 'mydb'
+      mysql_db:
+        name: mydb
         state: present
       when: "'dbServer' in group_names"
 
-    - name: Create database user with name 'bob' and password '12345' with all database privileges
+    - name: Create database user with name 'myuser' and password '123456' with all database privileges
       mysql_user:
-        name: arnut
-        password: 123456
-        priv: '*.*:ALL'
+        name: "myuser"
+        password: "123456"
+        priv: "*.*:ALL,GRANT"
+        host: "%"
         state: present
       when: "'dbServer' in group_names"
-      
