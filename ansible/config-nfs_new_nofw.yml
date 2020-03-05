@@ -57,3 +57,10 @@
 
     - command: mount -t nfs -o vers=4 192.168.147.82:/data/wwwdata /var/www/html
       when: "'apache' in group_names"
+      
+    - name: Add directory to fstab
+      blockinfile:
+        path: /etc/fstab
+        block: |
+          192.168.147.82:/data/wwwdata    /var/www/html   nfs     defaults        0 0
+      when: "'apache' in group_names"
