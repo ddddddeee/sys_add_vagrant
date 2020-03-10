@@ -1,6 +1,8 @@
 - hosts: all
   become: yes
   become_user: root
+  vars:
+    mysql_root_password: "123456"
   tasks:
     ################### Install Apache ###################
 
@@ -27,6 +29,7 @@
         packages:
           - mariadb-server
           - mariadb
+          - python3-PyMySQL
       when: "'dbServer' in group_names"
 
     # - name: Start mysql Service
@@ -66,19 +69,31 @@
         state: present
       when: "'dbServer' in group_names"
 
-    - name: Create a new database with name 'bobdata'
-      mysql_db:
-        name: test
-        state: present    
-      when: "'dbServer' in group_names"
+    # - name: Create a new database with name 'bobdata'
+    #   mysql_db:
+    #     name: test
+    #     state: present
+    #   when: "'dbServer' in group_names"
 
-    - name: Import DB 
-      shell: mysql test < /vagrant/ansible/sql/createtable2.sql      
+    # - name: Import DB
+    #   shell: mysql test < /vagrant/ansible/sql/createtable2.sql
+    #   when: "'dbServer' in group_names"
+
+    - name: Copy database dump file
+      copy:
+        src: ./sql/createtable2.sql
+        dest: /tmp
       when: "'dbServer' in group_names"
 
     - name: Restore database
       mysql_db:
         name: account
         state: import
-        target: "/vagrant/ansible/sql/createtable2.sql"
+        target: "/tmp/createtable2.sql"
       when: "'dbServer' in group_names"
+    # - name: Restore database
+    #   mysql_db:
+    #     name: account
+    #     state: import
+    #     target: "/vagrant/ansible/sql/createtable2.sql"
+    #   when: "'dbServer' in group_names"

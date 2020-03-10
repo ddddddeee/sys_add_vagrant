@@ -178,6 +178,10 @@
             source: "template/index2.php",
             destination: "/var/www/html/puakpoonphol.com/index.php",
           }
+        - {
+            source: "bas/index02.php",
+            destination: "/var/www/html/puakpoonphol.com/index2.php",
+          }
       when: inventory_hostname == "60160047-03"
 
     - name: Restart httpd Service
@@ -186,19 +190,27 @@
         state: restarted
       when: "'apache' in group_names"
 
-    - name: Copy reverse file to /etc/ngix/conf.d
-      template:
-        src: "quiz/reverse.conf"
-        dest: "/etc/nginx/conf.d/arnut-rv.conf"
-        owner: root
-        group: root
-        mode: "0755"
-      when: "'nginx' in group_names"
+    # - name: Copy reverse file to /etc/ngix/conf.d
+    #   template:
+    #     src: "quiz/reverse.conf"
+    #     dest: "/etc/nginx/conf.d/arnut-rv.conf"
+    #     owner: root
+    #     group: root
+    #     mode: "0755"
+    #   when: "'nginx' in group_names"
 
-    - name: Copy reverse file to /etc/ngix/conf.d
+    # - name: Copy reverse file to /etc/ngix/conf.d
+    #   template:
+    #     src: "quiz/loadbalance.conf"
+    #     dest: "/etc/nginx/conf.d/arnut-lb.conf"
+    #     owner: root
+    #     group: root
+    #     mode: "0755"
+    #   when: "'nginx' in group_names"
+    - name: Copy Nginx Config file to /etc/ngix/conf.d
       template:
-        src: "quiz/loadbalance.conf"
-        dest: "/etc/nginx/conf.d/arnut-lb.conf"
+        src: "quiz/lbrv.conf"
+        dest: "/etc/nginx/conf.d/arnut-nginx.conf"
         owner: root
         group: root
         mode: "0755"
