@@ -65,3 +65,20 @@
         host: "%"
         state: present
       when: "'dbServer' in group_names"
+
+    - name: Create a new database with name 'bobdata'
+      mysql_db:
+        name: test
+        state: present    
+      when: "'dbServer' in group_names"
+
+    - name: Import DB 
+      shell: mysql test < /vagrant/ansible/sql/createtable2.sql      
+      when: "'dbServer' in group_names"
+
+    - name: Restore database
+      mysql_db:
+        name: account
+        state: import
+        target: "/vagrant/ansible/sql/createtable2.sql"
+      when: "'dbServer' in group_names"
